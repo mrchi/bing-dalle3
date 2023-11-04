@@ -3,7 +3,10 @@ package bingdalle3
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 type BingDalle3 struct {
@@ -30,6 +33,15 @@ func (bing *BingDalle3) GetTokenBalance() (int, error) {
 		return 0, fmt.Errorf("resp status error: %s", resp.Status)
 	}
 
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		return 0, err
+	}
+	value, err := strconv.Atoi(doc.Find("div#token_bal").Text())
+	if err != nil {
+		return 0, err
+	}
+	return value, nil
 }
 
 func NewBingDalle3(cookie string) *BingDalle3 {
