@@ -14,7 +14,7 @@ import (
 
 const (
 	UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
-	Timeout   = 10 * time.Second
+	Timeout   = 5 * time.Second
 	PageUrl   = "https://www.bing.com/images/create"
 	ResultUrl = "https://www.bing.com/images/create/async/results/"
 )
@@ -113,7 +113,12 @@ func (bing *BingDalle3) CreateImage(prompt string) (string, error) {
 	req.Header.Set("User-Agent", UserAgent)
 	req.Header.Set("Referer", fullUrl)
 
-	client := http.Client{Timeout: Timeout}
+	client := http.Client{
+		Timeout: Timeout,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
@@ -186,7 +191,7 @@ func (bing *BingDalle3) QueryResult(id string, prompt string) ([]string, error) 
 			}
 			doc.Find("img.mimg").Each(func(i int, selection *goquery.Selection) {
 				url, _ := selection.Attr("src")
-				urls = append(urls, url)
+				urls = append(urls, removeQueryParamsForUrl(url))
 			})
 			if len(urls) > 0 {
 				return urls, nil
@@ -197,4 +202,13 @@ func (bing *BingDalle3) QueryResult(id string, prompt string) ([]string, error) 
 
 func NewBingDalle3(cookie string) *BingDalle3 {
 	return &BingDalle3{cookie: cookie}
+}
+
+func removeQueryParamsForUrl(fullUrl string) string {
+	url, err := url.Parse(fullUrl)
+	if err != nil {
+		return fullUrl
+	}
+	url.RawQuery = ""
+	return url.String()
 }
