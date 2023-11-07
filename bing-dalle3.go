@@ -3,6 +3,7 @@ package bingdalle3
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -198,6 +199,29 @@ func (bing *BingDalle3) QueryResult(id string, prompt string) ([]string, error) 
 			}
 		}
 	}
+}
+
+func (bing *BingDalle3) DownloadImage(imageUrl string) (*[]byte, error) {
+	req, err := http.NewRequest(http.MethodGet, imageUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Cookie", bing.cookie)
+	req.Header.Set("User-Agent", UserAgent)
+	req.Header.Set("Referer", PageUrl)
+
+	client := http.Client{Timeout: Timeout}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	content, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return &content, err
 }
 
 func NewBingDalle3(cookie string) *BingDalle3 {
